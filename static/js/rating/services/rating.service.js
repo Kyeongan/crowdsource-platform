@@ -9,14 +9,14 @@
         .module('crowdsource.rating.services')
         .factory('RatingService', RatingService);
 
-    RatingService.$inject = ['$cookies', '$q', '$location', 'HttpService'];
+    RatingService.$inject = ['$cookies', '$q', 'HttpService'];
 
     /**
      * @namespace RatingService
      * @returns {Factory}
      */
 
-    function RatingService($cookies, $q, $location, HttpService) {
+    function RatingService($cookies, $q, HttpService) {
         /**
          * @name RatingService
          * @desc The Factory to be returned
@@ -27,7 +27,8 @@
             getRequesterRatings: getRequesterRatings,
             submitRating: submitRating,
             updateRating: updateRating,
-            listByTarget: listByTarget
+            listByTarget: listByTarget,
+            updateProjectRating: updateProjectRating
         };
 
         return RatingService;
@@ -64,14 +65,29 @@
             return HttpService.doRequest(settings);
         }
 
-        function submitRating(weight, entry) {
+        function submitRating(weight, entry, task) {
             var settings = {
                 url: '/api/worker-requester-rating/',
                 method: 'POST',
                 data: {
                     weight: weight,
                     origin_type: entry.origin_type,
-                    target: entry.target
+                    target: entry.target,
+                    task: task
+                }
+            };
+            return HttpService.doRequest(settings);
+        }
+
+        function updateProjectRating(weight, entry, project) {
+            var settings = {
+                url: '/api/worker-requester-rating/by-project/',
+                method: 'POST',
+                data: {
+                    weight: weight,
+                    origin_type: entry.origin_type,
+                    target: entry.target,
+                    project: project
                 }
             };
             return HttpService.doRequest(settings);

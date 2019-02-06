@@ -5,24 +5,27 @@
         .module('crowdsource.project.controllers')
         .controller('MyTasksController', MyTasksController);
 
-    MyTasksController.$inject = ['$scope', 'Project', '$routeParams', 'Task', '$mdToast',
-        '$filter', 'RatingService'];
+    MyTasksController.$inject = ['$scope', 'Project', 'Task', '$mdToast',
+        '$filter', 'RatingService', 'TaskWorker', '$state'];
 
     /**
      * @namespace MyTasksController
      */
-    function MyTasksController($scope, Project, $routeParams, Task, $mdToast, $filter, RatingService) {
+    function MyTasksController($scope, Project, Task, $mdToast, $filter, RatingService, TaskWorker, $state) {
         var self = this;
         self.projects = [];
         self.loading = true;
         self.isSelected = isSelected;
         self.selectedProject = null;
-        self.toggleSelected = toggleSelected;
+        self.setSelected = setSelected;
         self.getStatus = getStatus;
         self.listMyTasks = listMyTasks;
         self.setRating = setRating;
         self.filterByStatus = filterByStatus;
         self.dropSavedTasks = dropSavedTasks;
+        self.getAmount = getAmount;
+        self.openTask = openTask;
+        self.getDate = getDate;
         self.tasks = [];
         self.status = {
             RETURNED: 5,
@@ -38,7 +41,7 @@
                 function success(response) {
                     self.loading = false;
                     self.projects = response[0];
-                    loadFirst();
+                    //loadFirst();
                 },
                 function error(response) {
                     $mdToast.showSimple('Could not get tasks.');
@@ -46,20 +49,21 @@
             ).finally(function () {
             });
         }
-        function loadFirst(){
-            if(self.projects.length){
-                listMyTasks(self.projects[0]);
-            }
+        function getDate(timestamp) {
+            return new Date(timestamp).toLocaleString();
         }
+        function getAmount(amount) {
+            return amount.toFixed(2);
+        }
+
 
         function isSelected(project) {
             return angular.equals(project, self.selectedProject);
         }
 
-        function toggleSelected(item) {
+        function setSelected(item) {
             if (angular.equals(item, self.selectedProject)) {
-                self.selectedProject = null;
-                self.tasks = [];
+                return null;
             }
             else {
                 self.listMyTasks(item);
@@ -82,7 +86,7 @@
                 function success(response) {
                     self.tasks = response[0].tasks;
                     self.selectedProject = project;
-                    RatingService.listByTarget(project.owner.profile, 'worker').then(
+                    RatingService.listByTarget(project.owner.id, 'worker').then(
                         function success(response) {
                             self.selectedProject.rating = response[0];
                         },
@@ -121,7 +125,7 @@
         }
 
         function filterByStatus(status) {
-            return $filter('filter')(self.tasks, {'task_status': status})
+            return $filter('filter')(self.tasks, {'status': status})
         }
 
         function dropSavedTasks(task) {
@@ -129,11 +133,40 @@
                 task_ids: [task.task]
             };
             Task.dropSavedTasks(request_data).then(function success(resp) {
-                task.task_status = self.status.SKIPPED;
-                $mdToast.showSimple('Task '+ task.task+ ' released');
+                task.status = self.status.SKIPPED;
+                $mdToast.showSimple('Task ' + task.task + ' released');
             }, function error(resp) {
                 $mdToast.showSimple('Could drop tasks')
             }).finally(function () {
+            });
+        }
+
+        function openTask(project_id) {
+            TaskWorker.attemptAllocateTask(project_id).then(
+                function success(data, status) {
+                    if (data[1] == 204) {
+                        $mdToast.showSimple('No available tasks.');
+                        // $state.go('task_feed');
+                    }
+                    else {
+                        var task_id = data[0].task;
+                        // var taskWorkerId = data[0].id;
+                        $state.go('task', {taskId: task_id});
+                    }
+
+                },
+                function error(errData) {
+                    var err = errData[0];
+                    var message = null;
+                    if (err.hasOwnProperty('detail')) {
+                        message = err.detail;
+                    }
+                    else {
+                        message = JSON.stringify(err);
+                    }
+                    $mdToast.showSimple('Error: ' + message);
+                }
+            ).finally(function () {
             });
         }
     }

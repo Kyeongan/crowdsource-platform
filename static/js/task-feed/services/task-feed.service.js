@@ -1,53 +1,29 @@
 /**
-* Project
-* @namespace crowdsource.task-feed.services
-*/
+ * Project
+ * @namespace crowdsource.task-feed.services
+ */
 (function () {
-  'use strict';
+    'use strict';
 
-  angular
-    .module('crowdsource.task-feed.services')
-    .factory('TaskFeed', TaskFeed);
+    angular
+        .module('crowdsource.task-feed.services')
+        .factory('TaskFeed', TaskFeed);
 
-  TaskFeed.$inject = ['$cookies', '$http', '$q', '$location', 'HttpService'];
+    TaskFeed.$inject = ['HttpService'];
 
-  /**
-  * @namespace TaskFeed
-  * @returns {Factory}
-  */
+    function TaskFeed(HttpService) {
 
-  function TaskFeed($cookies, $http, $q, $location, HttpService) {
-    /**
-    * @name TaskFeed
-    * @desc The Factory to be returned
-    */
-    var TaskFeed = {
-      getProjects: getProjects,
-      saveComment: saveComment
-    };
+        return {
+            getProjects: getProjects
+        };
 
-    return TaskFeed;
-
-    function getProjects () {
-      var settings = {
-        url: '/api/project/list_feed/',
-        method: 'GET'
-      };
-      return HttpService.doRequest(settings);
-    }
-
-    function saveComment(project_id, comment){
-      var settings = {
-        url: '/api/project/'+project_id+'/post_comment/',
-        method: 'POST',
-        data: {
-            comment: {
-                body: comment
-            }
+        function getProjects(sortBy) {
+            var settings = {
+                url: HttpService.apiPrefix + '/projects/task-feed/?sort_by=' + sortBy,
+                method: 'GET'
+            };
+            return HttpService.doRequest(settings);
         }
-      };
-      return HttpService.doRequest(settings);
-    }
 
-  }
+    }
 })();

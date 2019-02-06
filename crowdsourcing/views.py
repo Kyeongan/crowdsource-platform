@@ -1,28 +1,22 @@
+import base64
+import hmac
+import urllib
+from urlparse import parse_qs
+
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import render
-from rest_framework import views as rest_framework_views
-from rest_framework.views import APIView
+from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_protect
-from django.utils.decorators import method_decorator
-
+from rest_framework import views as rest_framework_views
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from crowdsourcing.serializers.user import *
-from crowdsourcing.serializers.project import *
 from crowdsourcing.utils import *
-from crowdsourcing.models import *
 from crowdsourcing.utils import get_model_or_none
-
-
-class JSONResponse(HttpResponse):
-    """
-    An HttpResponse that renders its content into JSON.
-    """
-
-    def __init__(self, data, **kwargs):
-        content = JSONRenderer().render(data)
-        kwargs['content_type'] = 'application/json'
-        super(JSONResponse, self).__init__(content, **kwargs)
 
 
 class Logout(APIView):
@@ -56,8 +50,8 @@ class Login(APIView):
         if user is not None:
 
             if not user.is_anonymous():
-                userprofile = user.userprofile
-                userprofile.last_active = datetime.now()
+                userprofile = user.profile
+                userprofile.last_active = timezone.now()
                 userprofile.save()
 
             if user.is_active:
@@ -69,12 +63,15 @@ class Login(APIView):
                 response_data["last_name"] = user.last_name
                 response_data["date_joined"] = user.date_joined
                 response_data["last_login"] = user.last_login
-                response_data["is_requester"] = hasattr(request.user.userprofile, 'requester')
-                response_data["is_worker"] = hasattr(request.user.userprofile, 'worker')
+                response_data["is_requester"] = user.profile.is_requester
+                response_data["is_worker"] = user.profile.is_worker
 
                 return Response(response_data, status.HTTP_200_OK)
             else:
-                raise AuthenticationFailed(_('Account is not activated yet.'))
+                raise AuthenticationFailed(
+                    _(
+                        'Account is not activated yet. Look for an email in your inbox and click the activation '
+                        'link in it.'))
         else:
             raise AuthenticationFailed(_('Username or password is incorrect.'))
 
@@ -86,11 +83,52 @@ class Oauth2TokenView(rest_framework_views.APIView):
         return Response(response_data, status=oauth2_status)
 
 
-# Will be moved to Class Views
-#################################################
-def registration_successful(request):
-    return render(request, 'registration/registration_successful.html')
-
-
 def home(request):
+    if request.user.is_authenticated():
+        return render(request, 'index.html')
+    # return render(request, 'homepage.html')
     return render(request, 'index.html')
+
+
+@login_required
+def sso(request):
+    payload = request.GET.get('sso')
+    signature = request.GET.get('sig')
+
+    if None in [payload, signature]:
+        return HttpResponseBadRequest('No SSO payload or signature. Please contact support if this problem persists.')
+
+    # Validate the payload
+    try:
+        payload = urllib.unquote(payload)
+        decoded = base64.decodestring(payload)
+        assert 'nonce' in decoded
+        assert len(payload) > 0
+    except AssertionError:
+        return HttpResponseBadRequest('Invalid payload. Please contact support if this problem persists.')
+
+    key = str(settings.DISCOURSE_SSO_SECRET)  # must not be unicode
+    h = hmac.new(key, payload, digestmod=hashlib.sha256)
+    this_signature = h.hexdigest()
+
+    if this_signature != signature:
+        return HttpResponseBadRequest('Invalid payload. Please contact support if this problem persists.')
+
+    # Build the return payload
+    decoded = base64.decodestring(payload)
+    qs = parse_qs(decoded)
+    params = {
+        'nonce': qs['nonce'][0],
+        'email': request.user.email,
+        'external_id': request.user.id,
+        'username': request.user.profile.handle,
+        'name': request.user.get_full_name(),
+    }
+
+    return_payload = base64.encodestring(urllib.urlencode(params))
+    h = hmac.new(key, return_payload, digestmod=hashlib.sha256)
+    query_string = urllib.urlencode({'sso': return_payload, 'sig': h.hexdigest()})
+
+    # Redirect back to Discourse
+    url = '%s/session/sso_login' % settings.DISCOURSE_BASE_URL
+    return HttpResponseRedirect('%s?%s' % (url, query_string))

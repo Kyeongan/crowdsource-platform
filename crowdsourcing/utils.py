@@ -1,13 +1,40 @@
-from oauth2_provider.oauth2_backends import OAuthLibCore, get_oauthlib_core
-from django.utils.http import urlencode
 import ast
-from django.utils import timezone
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.renderers import JSONRenderer
-from django.http import HttpResponse
-from csp import settings
-import string
+import datetime
+import hashlib
 import random
+import re
+import string
+
+from django.conf import settings
+from django.http import HttpResponse
+from django.template import Template
+from django.template.base import VariableNode
+from django.utils import timezone
+from django.utils.http import urlencode
+from oauth2_provider.oauth2_backends import OAuthLibCore, get_oauthlib_core
+from rest_framework.pagination import PageNumberPagination, LimitOffsetPagination
+from rest_framework.renderers import JSONRenderer
+
+from crowdsourcing.crypto import to_pk
+from crowdsourcing.redis import RedisProvider
+
+
+class SmallResultsSetPagination(LimitOffsetPagination):
+    default_limit = 100
+
+
+def is_discount_eligible(user):
+    if user.email[-4:] in settings.NON_PROFIT_EMAILS:
+        return True
+    return False
+
+
+def get_pk(id_or_hash):
+    try:
+        project_id = int(id_or_hash)
+        return project_id, False
+    except Exception:
+        return to_pk(id_or_hash), True
 
 
 def get_delimiter(filename, *args, **kwargs):
@@ -61,6 +88,9 @@ def get_next_unique_id(model, field, value):
 
 
 def get_time_delta(time_stamp):
+    if time_stamp is None:
+        return ""
+
     difference = timezone.now() - time_stamp
     days = difference.days
     hours = difference.seconds // 3600
@@ -114,7 +144,7 @@ class Oauth2Utils:
         from oauth2_provider.models import Application
 
         oauth2_client = Application.objects.create(user=user,
-                                                   client_type=Application.CLIENT_CONFIDENTIAL,
+                                                   client_type=Application.CLIENT_PUBLIC,
                                                    authorization_grant_type=Application.GRANT_PASSWORD)
         return oauth2_client
 
@@ -148,16 +178,114 @@ class JSONResponse(HttpResponse):
         super(JSONResponse, self).__init__(content, **kwargs)
 
 
-class PayPalBackend:
-    def __init__(self):
-        import paypalrestsdk
-        paypalrestsdk.configure({
-            "mode": "sandbox",
-            "client_id": settings.PAYPAL_CLIENT_ID,
-            "client_secret": settings.PAYPAL_CLIENT_SECRET
-        })
-        self.paypalrestsdk = paypalrestsdk
-
-
 def generate_random_id(length=8, chars=string.ascii_lowercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(length))
+
+
+def get_relative_time(date_time):
+    delta = datetime.timedelta(days=7)
+    current = timezone.now()
+    difference = current - date_time
+    if difference.total_seconds() - delta.total_seconds() > 0:
+        return date_time.strftime("%b") + ' ' + str(date_time.day)
+    else:
+        one_day = datetime.timedelta(days=1)
+        if difference.total_seconds() - one_day.total_seconds() > 0:
+            return date_time.strftime("%a")
+        else:
+            return date_time.strftime('%I:%M %p').lstrip('0')
+
+
+def get_worker_cache(worker_id):
+    provider = RedisProvider()
+    name = provider.build_key('worker', worker_id)
+    worker_stats = provider.hgetall(name)
+    worker_groups = provider.smembers(name + ':worker_groups')
+    approved = int(worker_stats.get('approved', 0))
+    rejected = int(worker_stats.get('rejected', 0))
+    submitted = int(worker_stats.get('submitted', 0))
+    gender = worker_stats.get('gender')
+    birthday_year = worker_stats.get('birthday_year')
+    ethnicity = worker_stats.get('ethnicity')
+    is_worker = worker_stats.get('is_worker', 0)
+    is_requester = worker_stats.get('is_requester', 0)
+
+    approval_rate = None
+    if approved + rejected > 0:
+        approval_rate = float(approved) / float(approved + rejected)
+
+    worker_data = {
+        "country": worker_stats.get('country', None),
+        "approval_rate": approval_rate,
+        "total_tasks": approved + rejected + submitted,
+        "approved_tasks": approved,
+        "worker_groups": list(worker_groups),
+        "gender": gender,
+        "birthday_year": birthday_year,
+        "ethnicity": ethnicity,
+        "is_worker": is_worker,
+        "is_requester": is_requester
+    }
+    return worker_data
+
+
+def create_copy(instance):
+    instance.pk = None
+    instance.save()
+    return instance
+
+
+def get_review_redis_message(match_group_id, project_key):
+    message = {
+        "type": "REVIEW",
+        "payload": {
+            "match_group_id": match_group_id,
+            'project_key': project_key,
+            "is_done": True
+        }
+    }
+    return message
+
+
+def replace_braces(s):
+    return re.sub(r'\s(?=[^\{\}]*}})', '', unicode(s))
+
+
+def get_template_string(initial_data, data):
+    initial_data = replace_braces(initial_data)
+    html_template = Template(initial_data)
+    return_value = ''
+    has_variables = False
+    for node in html_template.nodelist:
+        if isinstance(node, VariableNode):
+            return_value += unicode(data.get(node.token.contents, ''))
+            has_variables = True
+        else:
+            return_value += unicode(node.token.contents)
+    return return_value, has_variables
+
+
+def get_template_tokens(initial_data):
+    initial_data = replace_braces(initial_data)
+    html_template = Template(initial_data)
+    return [node.token.contents for node in html_template.nodelist if isinstance(node, VariableNode)]
+
+
+def flatten_dict(d, separator='_', prefix=''):
+    return {prefix + separator + k if prefix else k: v
+            for kk, vv in d.items()
+            for k, v in flatten_dict(vv, separator, kk).items()
+            } if isinstance(d, dict) else {prefix: d}
+
+
+def hash_task(data):
+    return hashlib.sha256(repr(sorted(frozenset(flatten_dict(data))))).hexdigest()
+
+
+def hash_as_set(data):
+    return hashlib.sha256(repr(sorted(frozenset(data)))).hexdigest()
+
+
+def get_trailing_number(s):
+    m = re.search(r'\d+$', s)
+    return int(m.group()) if m else None

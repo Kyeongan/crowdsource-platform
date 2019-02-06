@@ -9,14 +9,14 @@
         .module('crowdsource.template.services')
         .factory('Template', Template);
 
-    Template.$inject = ['$cookies', '$http', '$q', '$location', '$sce', 'HttpService', '$templateCache'];
+    Template.$inject = ['$cookies', '$http', '$q', '$sce', 'HttpService', '$templateCache'];
 
     /**
      * @namespace Template
      * @returns {Factory}
      */
 
-    function Template($cookies, $http, $q, $location, $sce, HttpService, $templateCache) {
+    function Template($cookies, $http, $q, $sce, HttpService, $templateCache) {
         /**
          * @name Template
          * @desc The Factory to be returned
@@ -60,13 +60,29 @@
 
             var templateComponents = [
                 {
+                    name: "Instructions",
+                    icon: 'title',
+                    type: 'instructions',
+                    tooltip: "Instructions",
+                    role: 'display',
+                    watch_fields: ['aux_attributes', 'position', 'predecessor'],
+                    aux_attributes: {
+                        question: {
+                            value: "Instructions",
+                            data_source: null
+                        }
+                    },
+                    position: null,
+                    required: false
+                },
+                {
                     name: "Text",
                     icon: 'text_fields',
                     type: 'text',
                     sub_type: 'text',
-                    tooltip: "Text",
+                    tooltip: "Text Input",
                     role: 'input',
-                    watch_fields: ['aux_attributes', 'type', 'sub_type'],
+                    watch_fields: ['aux_attributes', 'type', 'sub_type', 'position', 'name', 'required', 'predecessor'],
                     aux_attributes: {
                         question: {
                             value: "Untitled Question",
@@ -87,7 +103,7 @@
                     type: 'checkbox',
                     tooltip: "Check Box",
                     role: 'input',
-                    watch_fields: ['aux_attributes', 'type'],
+                    watch_fields: ['aux_attributes', 'type', 'position', 'name', 'required', 'predecessor'],
                     aux_attributes: {
                         question: {
                             value: "Untitled Question",
@@ -120,7 +136,7 @@
                     layout: 'column',
                     role: 'input',
                     data_source: null,
-                    watch_fields: ['aux_attributes', 'type'],
+                    watch_fields: ['aux_attributes', 'type', 'position', 'name', 'required', 'predecessor'],
                     aux_attributes: {
                         question: {
                             value: "Untitled Question",
@@ -152,7 +168,7 @@
                     layout: 'column',
                     role: 'input',
                     data_source: null,
-                    watch_fields: ['aux_attributes', 'type'],
+                    watch_fields: ['aux_attributes', 'type', 'position', 'name', 'required', 'predecessor'],
                     aux_attributes: {
                         question: {
                             value: "Untitled Question",
@@ -182,17 +198,17 @@
                     type: 'image',
                     tooltip: "Image Container",
                     role: 'display',
-                    watch_fields: ['type', 'aux_attributes'],
+                    watch_fields: ['type', 'aux_attributes', 'position', 'predecessor'],
                     aux_attributes: {
                         question: {
                             value: "Untitled Question",
                             data_source: null
                         },
-                        src: 'http://placehold.it/600x150?text=Image',
+                        src: '',
                         data_source: null
                     },
                     position: null,
-                    required: true
+                    required: false
                 },
                 {
                     name: "Audio",
@@ -200,7 +216,7 @@
                     type: 'audio',
                     tooltip: "Audio Container",
                     role: 'display',
-                    watch_fields: ['type', 'aux_attributes'],
+                    watch_fields: ['type', 'aux_attributes', 'position', 'predecessor'],
                     aux_attributes: {
                         question: {
                             value: "Untitled Question",
@@ -210,7 +226,7 @@
                         data_source: null
                     },
                     position: null,
-                    required: true
+                    required: false
                 },
                 /*{
                  tooltip: "Video Container",
@@ -228,9 +244,9 @@
                     type: 'iframe',
                     tooltip: "Embed content from remote site",
                     role: 'display',
-                    watch_fields: ['aux_attributes'],
+                    watch_fields: ['aux_attributes', 'position', 'name', 'predecessor'],
                     position: null,
-                    required: true,
+                    required: false,
                     aux_attributes: {
                         question: {
                             value: "Untitled Form",
@@ -239,7 +255,24 @@
                         src: 'http://www.noiseaddicts.com/',
                         data_source: null
                     }
-                }
+                },
+                {
+                    name: "File",
+                    icon: 'file_upload',
+                    type: 'file_upload',
+                    tooltip: "File Upload",
+                    role: 'input',
+                    watch_fields: ['aux_attributes', 'type', 'position', 'name', 'required', 'predecessor'],
+                    aux_attributes: {
+                      url: '',
+                      question: {
+                          value: "Untitled Question",
+                          data_source: null
+                      }
+                    },
+                    position: null,
+                    required: true
+                },
             ];
 
             return templateComponents;

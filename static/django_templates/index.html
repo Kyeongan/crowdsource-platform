@@ -4,67 +4,69 @@
     <base href="/">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="author" content="neilg, dmorina">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimal-ui">
+    <meta name="author" content="Stanford Crowd Research Collective">
 
-    <title>daemo</title>
+    <title ng-bind="pageTitle">Daemo</title>
     <!-- Custom CSS -->
     <!--link href='https://fonts.googleapis.com/css?family=Roboto:400,700,500' rel='stylesheet' type='text/css'-->
-    <link href='https://fonts.googleapis.com/css?family=Fira+Sans:400,700,500,400italic' rel='stylesheet'
-          type='text/css'>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!--link href='https://fonts.googleapis.com/css?family=Fira+Mono|Fira+Sans:400,700,500,400italic' rel='stylesheet'
+          type='text/css'-->
+    <!--link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"-->
+    <link rel="icon" href="{% static 'images/logo.ico' %}">
     <link href="{% static 'bower_components/angular-material/angular-material.min.css' %}" rel="stylesheet">
+    <link href="{% static 'bower_components/nvd3/build/nv.d3.css' %}" rel="stylesheet">
+    <link href="{% static 'fonts/Material_Icons/material-icons.css' %}" rel="stylesheet">
     <link href="{% static 'css/app.css' %}" rel="stylesheet">
+    <link href="{% static 'bower_components/angular-material-time-picker/dist/md-time-picker.css' %}" rel="stylesheet">
+
 </head>
 
-<body ng-controller="HomeController as ctrl">
+<body>
+<div ui-view="fullscreen">
 
-<div layout="column" class="_content-body" ng-controller="NavbarController as navCtrl">
+    <div class="_content-body">
+        <div ui-view="navbar"></div>
 
-    <div class="_header" layout="row" ng-if="isLoggedIn" ng-cloak>
-        <md-toolbar class="_main-toolbar">
-            <div class="md-toolbar-tools" flex>
-                <div flex="25" flex-gt-sm="15" layout="row" layout-align="start center">
-                    <svg class="_nav-logo" viewBox="0 0 88 125" enable-background="new 0 0 88 125">
-                        <g>
-                            <path d="M69.4,64.5c1.2,4.9,1.9,9.8,1.9,14.6c0,17.8-13.1,28.9-26.7,28.9C26,108,16.7,92.7,16.7,81
-		c0-14,9.6-26.7,27.9-26.7c6.5,0,12.6,1.3,18.1,3.7c1.1,0.5,2.2,1.1,3.4,1.8C64.7,55.4,62,47.6,58,40.1c-0.3-0.1-0.5-0.2-0.8-0.2
-		c-3.9-1.1-8.1-1.7-12.6-1.7C14.9,38.2,0.8,61.3,0.8,81c0,19.7,14.7,43,43.8,43c30.3,0,42.2-27.4,42.2-43c0-0.1,0-0.1,0-0.2
-		C82.3,74.1,75.7,68,69.4,64.5z"/>
-                            <path d="M56.2,35.3c0.1,0.2,0.2,0.3,0.3,0.5c6.8,1.8,15.7,6.5,22.8,12.1C71.4,28.6,59.5,11.7,53.6,6.1
-		c-8.2-8-16.1-3-20.2,2.2C37.4,12.3,48.1,22.6,56.2,35.3z"/>
-                        </g>
-                    </svg>
-                </div>
-                <div flex layout="row" layout-align="end center">
-                    <ng-include ng-if="isLoggedIn" src="'/static/templates/layout/top_navigation.html'"></ng-include>
-                </div>
-            </div>
-        </md-toolbar>
-    </div>
-
-    <div ng-if="!isLoggedIn" ng-cloak>
-        <div flex layout="row" layout-align="center start">
-            <h1 class="md-display-3" layout="column" layout-align="center"><img src="/static/images/logo.svg"> DAEMO
-            </h1>
+        <div class="_wrapper" role="main" tabindex="-1" layout="column" ui-view="content">
         </div>
-        <div flex layout="row" layout-align="center">
-            <md-button class="md-raised md-primary" ng-href="/login">Sign In</md-button>
-            <md-button class="md-raised md-accent" ng-href="/register">Register</md-button>
-        </div>
+
+        <div ui-view="chat"></div>
     </div>
 
-    <div class="_wrapper" role="main" tabindex="-1" layout="column">
-        <div ng-view=""></div>
-    </div>
 </div>
+
+<script>
+    var $buoop = {vs: {i: 11, f: 35, o: 25, s: 7}, c: 2};
+
+    function $buo_f() {
+        var e = document.createElement("script");
+        e.src = "//browser-update.org/update.min.js";
+        document.body.appendChild(e);
+    };
+    try {
+        document.addEventListener("DOMContentLoaded", $buo_f, false)
+    }
+    catch (e) {
+        window.attachEvent("onload", $buo_f)
+    }
+</script>
 
 {% compress js %}
     <script type="text/javascript" src="{% static 'bower_components/jquery/dist/jquery.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'bower_components/jquery-ui/jquery-ui.min.js' %}"></script>
+    <script type="text/javascript"
+            src="{% static 'bower_components/jquery-textcomplete/dist/jquery.textcomplete.js' %}"></script>
     <script type="text/javascript" src="{% static 'bower_components/underscore/underscore-min.js' %}"></script>
     <script type="text/javascript" src="{% static 'bower_components/gsap/src/minified/TweenMax.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bower_components/marked/lib/marked.js' %}"></script>
 {% endcompress %}
+
+<script src="https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyAquGFWl69VZgQYs3ysPk_izvexpl0t98U"></script>
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/atom-one-light.min.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+
 {% compress js %}
     <script type="text/javascript" src="{% static 'bower_components/angular/angular.min.js' %}"></script>
     <script type="text/javascript"
@@ -72,24 +74,34 @@
     <script type="text/javascript" src="{% static 'bower_components/ngFx/dist/ngFx.min.js' %}"></script>
     <script type="text/javascript"
             src="{% static 'bower_components/angular-sanitize/angular-sanitize.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'bower_components/angular-messages/angular-messages.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'bower_components/angular-route/angular-route.js' %}"></script>
-    <script type="text/javascript" src="{% static 'bower_components/angular-cookies/angular-cookies.js' %}"></script>
     <script type="text/javascript"
-            src="{% static 'bower_components/angular-loading-bar/src/loading-bar.js' %}"></script>
+            src="{% static 'bower_components/angular-messages/angular-messages.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bower_components/angular-route/angular-route.js' %}"></script>
+    <script type="text/javascript"
+            src="{% static 'bower_components/angular-ui-router/release/angular-ui-router.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bower_components/angular-cookies/angular-cookies.js' %}"></script>
+
     <script type="text/javascript" src="{% static 'bower_components/angular-aria/angular-aria.min.js' %}"></script>
     <script type="text/javascript"
             src="{% static 'bower_components/angular-material/angular-material.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'bower_components/angular-filter/dist/angular-filter.js' %}"></script>
-    <script type="text/javascript"
-            src="{% static 'bower_components/angular-dragdrop/src/angular-dragdrop.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'bower_components/angular-ng-sortablejs/Sortable.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'bower_components/angular-ng-sortablejs/ng-sortable.js' %}"></script>
     <script type="text/javascript" src="{% static 'bower_components/ng-file-upload/ng-file-upload.min.js' %}"></script>
     <script type="text/javascript"
             src="{% static 'bower_components/ng-file-upload/ng-file-upload-shim.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bower_components/ng-websocket/ng-websocket.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bower_components/angular-marked/dist/angular-marked.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bower_components/d3/d3.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bower_components/nvd3/build/nv.d3.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bower_components/angular-nvd3/dist/angular-nvd3.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bower_components/moment/moment.js' %}"></script>
+    <script type="text/javascript" src="{% static 'bower_components/angular-moment/angular-moment.js' %}"></script>
     <script type="text/javascript"
-            src="{% static 'bower_components/angular-clipboard/angular-clipboard.js' %}"></script>
+            src="{% static 'bower_components/angular-material-time-picker/dist/md-time-picker.js' %}"></script>
+
+
+    <script type="text/javascript"
+            src="{% static 'bower_components/angular-highlightjs/build/angular-highlightjs.min.js' %}"></script>
 {% endcompress %}
 {% compress js %}
     <script type="text/javascript" src="{% static 'js/crowdsource.js' %}"></script>
@@ -106,43 +118,38 @@
     <script type="text/javascript" src="{% static 'js/authentication/services/authentication.service.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/authentication/controllers/register.controller.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/authentication/controllers/login.controller.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/authentication/controllers/logout.controller.js' %}"></script>
     <script type="text/javascript"
             src="{% static 'js/authentication/controllers/auth-settings.controller.js' %}"></script>
 
     <script type="text/javascript" src="{% static 'js/layout/layout.module.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/layout/controllers/navbar.controller.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/layout/controllers/accountmenu.controller.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/layout/controllers/home.controller.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/layout/controllers/home-routing.controller.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/layout/controllers/demo.controller.js' %}"></script>
 
-    <script type="text/javascript" src="{% static 'js/home/home.module.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/home/controllers/home.controller.js' %}"></script>
-
-    <script type="text/javascript" src="{% static 'js/requester/requester.module.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/requester/controllers/requester.controller.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/requester/services/requester.service.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/docs/docs.module.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/docs/controllers/docs.controller.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/docs/directives/docs-nav.directive.js' %}"></script>
 
     <script type="text/javascript" src="{% static 'js/rating/rating.module.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/rating/controllers/rating.controller.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/rating/services/rating.service.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/rating/directives/check-rating.directive.js' %}"></script>
 
-
     <script type="text/javascript" src="{% static 'js/task/task.module.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/task/services/task.service.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/task/controllers/task.controller.js' %}"></script>
-
-    <script type="text/javascript" src="{% static 'js/skill/skill.module.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/skill/services/skill.service.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/task/controllers/task-review.controller.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/task/directives/task.directive.js' %}"></script>
 
     <script type="text/javascript" src="{% static 'js/helpers/helpers.module.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/helpers/services/helpers.service.js' %}"></script>
 
-    <script type="text/javascript" src="{% static 'js/worker/worker.module.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/worker/controllers/worker.controller.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/worker/controllers/workeraccount.controller.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/worker/services/worker.service.js' %}"></script>
-
     <script type="text/javascript" src="{% static 'js/user/user.module.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/user/controllers/user.controller.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/user/controllers/public-profile.controller.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/user/controllers/preferences.controller.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/user/services/user.service.js' %}"></script>
 
     <script type="text/javascript" src="{% static 'js/project/project.module.js' %}"></script>
@@ -151,13 +158,11 @@
     <script type="text/javascript" src="{% static 'js/project/controllers/project-review.controller.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/project/controllers/my-tasks.controller.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/project/services/project.service.js' %}"></script>
-
-    <script type="text/javascript" src="{% static 'js/contributor/contributor.module.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/contributor/controllers/contributor.controller.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/contributor/services/contributor.service.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/project/directives/project.directive.js' %}"></script>
 
     <script type="text/javascript" src="{% static 'js/payment/payment.module.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/payment/controllers/payment.controller.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/payment/controllers/bonus.controller.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/payment/services/payment.service.js' %}"></script>
 
     <script type="text/javascript" src="{% static 'js/task-feed/task-feed.module.js' %}"></script>
@@ -172,13 +177,30 @@
     <script type="text/javascript" src="{% static 'js/template/services/template.service.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/template/directives/template.directive.js' %}"></script>
 
-    <script type="text/javascript" src="{% static 'js/drive/drive.module.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/drive/controllers/drive.controller.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/drive/services/drive.service.js' %}"></script>
-
-    <script type="text/javascript" src="{% static 'js/data-table/data-table.module.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/data-table/controllers/data-table.controller.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/data-table/directives/data-table.directive.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/message/message.module.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/message/controllers/message.controller.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/message/controllers/overlay.controller.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/message/services/message.service.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/message/directives/message.directive.js' %}"></script>
 {% endcompress %}
+
+<script>
+    (function (i, s, o, g, r, a, m) {
+        i['GoogleAnalyticsObject'] = r;
+        i[r] = i[r] || function () {
+            (i[r].q = i[r].q || []).push(arguments)
+        }, i[r].l = 1 * new Date();
+        a = s.createElement(o),
+            m = s.getElementsByTagName(o)[0];
+        a.async = 1;
+        a.src = g;
+        m.parentNode.insertBefore(a, m)
+    })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+
+    ga('create', 'UA-78052091-4', 'auto');
+    ga('send', 'pageview');
+
+</script>
+
 </body>
 </html>

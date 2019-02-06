@@ -1,8 +1,4 @@
-/**
- * Payment
- * @namespace crowdsource.payment.services
- * @author shirish
- */
+
 (function () {
     'use strict';
 
@@ -10,40 +6,39 @@
         .module('crowdsource.payment.services')
         .factory('Payment', Payment);
 
-    Payment.$inject = ['$cookies', '$http', '$q', '$location', 'HttpService', 'LocalStorage'];
+    Payment.$inject = ['$cookies', '$http', 'HttpService'];
 
     /**
      * @namespace Payment
-     * @returns {Factory}
      */
 
-    function Payment($cookies, $http, $q, $location, HttpService, LocalStorage) {
+    function Payment($cookies, $http, HttpService) {
         /**
          * @name Payment
          * @desc The Factory to be returned
          */
 
         var Payment = {
-            create: create,
-            execute: execute
+            createCharge: createCharge,
+            createBonus: createTransfer
         };
 
         return Payment;
 
-        function create(data){
+        function createCharge(data) {
             var settings = {
-                url: '/api/payment-paypal/',
+                url: '/api/charges/',
                 method: 'POST',
                 data: data
             };
             return HttpService.doRequest(settings);
         }
 
-        function execute(data) {
+        function createTransfer(data) {
             var settings = {
-                url: '/api/payment-paypal/execute/',
+                url: '/api/transfers/bonus/',
                 method: 'POST',
-                data:data
+                data: data
             };
             return HttpService.doRequest(settings);
         }

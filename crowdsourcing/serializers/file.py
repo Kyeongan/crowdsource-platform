@@ -8,17 +8,19 @@ import pandas as pd
 
 class BatchFileSerializer(DynamicFieldsModelSerializer):
     size = serializers.SerializerMethodField()
+    file = serializers.FileField(required=False)
 
     class Meta:
         model = BatchFile
-        fields = ('id', 'file', 'number_of_rows', 'name', 'first_row', 'format', 'column_headers', 'url', 'size',)
-        read_only_fields = ('number_of_rows', 'name', 'first_row', 'format', 'column_headers',)
+        fields = ('id', 'file', 'number_of_rows', 'name', 'first_row',
+                  'format', 'column_headers', 'url', 'size', 'file')
+        read_only_fields = ('number_of_rows', 'name', 'first_row', 'format', 'column_headers', 'file')
 
     def create(self, **kwargs):
         uploaded_file = self.validated_data['file']
-        batch_file = BatchFile(deleted=False, file=uploaded_file)
+        batch_file = BatchFile(file=uploaded_file)
         delimiter = get_delimiter(uploaded_file.name)
-        df = pd.DataFrame(pd.read_csv(uploaded_file, sep=delimiter))
+        df = pd.DataFrame(pd.read_csv(uploaded_file, sep=delimiter, encoding='utf-8'))
         df = df.where((pd.notnull(df)), None)
         column_headers = list(df.columns.values)
         num_rows = len(df.index)

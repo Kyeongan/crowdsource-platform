@@ -19,12 +19,21 @@
             scope: {
                 mdTemplateCompiler: '=',
                 editor: '=',
-                instance: '='
+                instance: '=',
+                isDisabled: '=',
+                isReview: '=',
+                isEditPreview: '=?'
             },
             link: function (scope, element, attrs, ctrl) {
                 scope.item = scope.mdTemplateCompiler;
 
+                if (scope.item.aux_attributes.shuffle_options == true && scope.editor == false && scope.isReview == false &&
+                    scope.isEditPreview != true) {
+                    scope.item.aux_attributes.options = shuffle(scope.item.aux_attributes.options);
+                }
+
                 var templateNames = {
+                    "instructions": scope.editor ? "instructions-edit" : "instructions",
                     "text": scope.editor ? "text-edit" : "text",
                     "number": scope.editor ? "text-edit" : "text",
                     "text_area": scope.editor ? "text-edit" : "text",
@@ -34,7 +43,8 @@
                     "image": scope.editor ? "media-edit" : "media",
                     "audio": scope.editor ? "media-edit" : "media",
                     "video": scope.editor ? "media-edit" : "media",
-                    "iframe": scope.editor ? "media-edit" : "media"
+                    "iframe": scope.editor ? "media-edit" : "media",
+                    "file_upload": scope.editor ? "file-upload-edit" : "file-upload"
                 };
                 var templateComponents = Template.getTemplateComponents(scope);
 
@@ -50,12 +60,34 @@
                     return a.href;
                 }
 
+                // Fisher-yates shuffle algorithm
+                function shuffle(array) {
+                    var m = array.length, t, i;
+
+                    // While there remain elements to shuffle
+                    while (m) {
+                        // Pick a remaining element…
+                        i = Math.floor(Math.random() * m--);
+
+                        // And swap it with the current element.
+                        t = array[m];
+                        array[m] = array[i];
+                        array[i] = t;
+                    }
+
+                    return array;
+                }
+
                 function update(newField, oldField) {
                     var type = newField.sub_type || newField.type;
 
                     // For remote content - iframe only
                     if (newField.type == 'iframe' && !scope.editor && newField.hasOwnProperty('identifier') && newField.identifier) {
                         newField.aux_attributes.src = addParam(newField.aux_attributes.src, "daemo_id", newField.identifier);
+                        if (newField.hasOwnProperty('daemo_post_url') && newField.daemo_post_url) {
+                            newField.aux_attributes.src = addParam(newField.aux_attributes.src, "daemo_post_url",
+                                newField.daemo_post_url);
+                        }
                     }
 
                     Template.getTemplate(templateNames[type]).then(function (template) {
@@ -66,12 +98,74 @@
                 }
 
                 scope.editor = scope.editor || false;
+                scope.isDisabled = scope.isDisabled || false;
+                scope.isReview = scope.isReview || false;
+                scope.isEditPreview = scope.isEditPreview || false;
+
+                scope.bindAutoComplete = function () {
+                    var elements = scope.instance.headers;
+                    $('.auto-complete-dropdown').textcomplete([
+                        {
+                            match: /\{\s*([\w\s]*)$/,
+                            search: function (term, callback) {
+                                var count = 0;
+                                callback($.map(elements, function (element) {
+                                    if (element.indexOf(term) === 0 && count < 5) {
+                                        count++;
+                                        return element;
+                                    }
+                                    else
+                                        return null;
+                                }));
+                            },
+                            index: 1,
+                            replace: function (element) {
+                                return '{{' + element + '}}';
+                            }
+                        }, {
+                            match: /\b([\w\s]*)$/,
+                            search: function (term, callback) {
+                                var count = 0;
+                                callback($.map(elements, function (element) {
+                                    if (element.indexOf(term) === 0 && count < 5) {
+                                        count++;
+                                        return element;
+                                    }
+                                    else
+                                        return null;
+                                }));
+                            },
+                            index: 1,
+                            replace: function (element) {
+                                return '{{' + element + '}}';
+                            }
+                        }
+                    ]);
+                };
+
+                function setUndefinedToNull(obj) {
+                    if (obj === undefined) {
+                        return null;
+                    }
+                    if (obj !== null
+                        && typeof obj === 'object') {
+                        for (var key in obj) {
+                            if (obj.hasOwnProperty(key)) {
+                                obj[key] = setUndefinedToNull(obj[key]);
+                            }
+                        }
+                    }
+                    return obj;
+                }
 
                 scope.$watch('mdTemplateCompiler', function (newField, oldField) {
 
                     if (scope.editor) {
-                        if (!newField.hasOwnProperty('isSelected') || newField.isSelected == undefined || newField.isSelected !== oldField.isSelected) {
+                        // if (!newField.hasOwnProperty('isSelected') || newField.isSelected == undefined || newField.isSelected !== oldField.isSelected) {
+                        if (newField !== scope.instance.selectedItem || newField.isNew) {
+                            newField.isNew = false;
                             update(newField, oldField);
+
                         }
                     } else {
                         update(newField, oldField);
@@ -80,32 +174,48 @@
                 }, scope.editor);
 
                 var timeouts = {};
+                var request_data = {};
 
                 if (scope.editor) {
                     scope.$watch('item', function (newValue, oldValue) {
                         if (!angular.equals(newValue, oldValue)) {
+                            if (!request_data.hasOwnProperty(newValue.id)) {
+                                request_data[newValue.id] = {};
+                            }
                             var component = _.find(templateComponents, function (component) {
                                 return component.type == newValue.type
                             });
-                            var request_data = {};
-                            angular.forEach(component.watch_fields, function (obj) {
-                                if (newValue[obj] != oldValue[obj]) {
-                                    request_data[obj] = newValue[obj];
+
+                            angular.forEach(component.watch_fields, function (property) {
+                                if (newValue[property] != oldValue[property]) {
+                                    request_data[newValue.id][property] = setUndefinedToNull(newValue[property]);
                                 }
                             });
                             if (angular.equals(request_data, {})) return;
-                            if (timeouts[newValue.id]) $timeout.cancel(timeouts[newValue.id]);
-                            timeouts[newValue.id] = $timeout(function () {
-                                Template.updateItem(newValue.id, request_data).then(
-                                    function success(response) {
 
-                                    },
-                                    function error(response) {
-                                        //$mdToast.showSimple('Could not delete template item.');
-                                    }
-                                ).finally(function () {
+                            if (timeouts[newValue.id]) {
+                                $timeout.cancel(timeouts[newValue.id]);
+                            }
+                            if (newValue.id) {
+                                scope.$parent.project.saveMessage = 'Saving...';
+                            }
+                            timeouts[newValue.id] = $timeout(function () {
+                                var item = _.find(scope.instance.items, function (item) {
+                                    return item.id == newValue.id;
+                                });
+
+                                if (item) {
+                                    Template.updateItem(newValue.id, request_data[newValue.id]).then(
+                                        function success(response) {
+                                            scope.$parent.project.saveMessage = 'All changes saved';
+                                        },
+                                        function error(response) {
+                                            //$mdToast.showSimple('Could not delete template item.');
+                                        }
+                                    ).finally(function () {
                                     });
-                            }, 2048);
+                                }
+                            }, 512);
                         }
                     }, true);
                 }
